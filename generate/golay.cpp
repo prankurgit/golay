@@ -708,10 +708,10 @@ int main(void)
     FILE *fd1;
     unsigned int error = 0;
     struct Item item;
-    item.offset_begin = 1024;
-    item.offset_end = 16;
+    item.offset_begin = 1024;//for the time being harcoded to match the length
+    item.offset_end = 16;   // in the initial code
     item.input_length = 0;
-    strcpy(item.input_Key_name, "pr_key");
+    strcpy(item.input_Key_name, "pubk");
     strcpy(item.input_PUF_name, "PUF");
     strcpy(item.input_file_name, "ts2");
     item.HD_error_pos = 0;
@@ -741,21 +741,22 @@ int main(void)
 
     if (fread(&sramData[0], sizeof(char), item.input_length, fd) != item.input_length) {
         printf("unable to read file1\n");
-        return -1;
+        goto error2;
     }
 
     item.offset_begin = item.offset_end = 0;
     error = SetInputLen(&item, 1);
+    //read from key file and store in keydata
     if ((fd1 = fopen(item.input_Key_name, "rb")) == NULL) {
         printf("unable to open file2!\n");
-        return -1;
+        goto error2;
     }
     fseek(fd1, item.offset_begin, SEEK_SET);
     keydata = (unsigned char *) malloc(sizeof(char) * item.input_length);
 
     if (fread(&keydata[0], sizeof(char), item.input_length, fd1) != item.input_length) {
         printf("unable to read file\n");
-        return -1;
+        goto error1;
     }
 
     /* ---------------------------------------------------------------------
@@ -771,22 +772,24 @@ int main(void)
     error = SetInputLen(&item, 2);
     if ((fd1 = fopen(item.input_file_name, "rb")) == NULL) {
         printf("unable to open file3!\n");
-        return -1;
+        goto error1;
     }
     fseek(fd1, item.offset_begin, SEEK_SET);
     keydata = (unsigned char *) malloc(sizeof(char) * item.input_length);
 
     if (fread(&keydata[0], sizeof(char), item.input_length, fd1) != item.input_length) {
         printf("unable to read file\n");
-        return -1;
+        goto error1;
     }
     // functioncall to generate the codewords array and perform LR and save HelperData on FLASH for the publicKey (ts2)
-    generateHelperData(keydata, item.input_length, sramData, item.LR, "pu");
+    //generateHelperData(keydata, item.input_length, sramData, item.LR, "pu");
     //generateHelperData(ts2, sizeof(ts2), sramData, 15, "pu");
 
-    free(sramData);
-    free(keydata);
-    fclose(fd);
+error1:
     fclose(fd1);
+    free(keydata);
+error2:
+    free(sramData);
+    fclose(fd);
     return 0;
 }
