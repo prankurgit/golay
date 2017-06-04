@@ -665,26 +665,10 @@ int generateHelperData(volatile unsigned char *inputSecret, int inputSize, volat
 
     // print to file
     FILE *ptr2;
-    if (LRfactor == 7){
-        if (!strcmp(typ,"pu")){
-            ptr2 = fopen( "helperdata7pu.bin", "wb" );
-        }
-        else {
-            ptr2 = fopen( "helperdata7pr.bin", "wb" );
-        }
-    }
-    if (LRfactor == 15){
-        if (!strcmp(typ,"pu")){
-            ptr2 = fopen( "helperdata15pu.bin", "wb" );
-        }
-        else {
-            ptr2 = fopen( "helperdata15pr.bin", "wb" );
-        }
-    }
-    if (!ptr2)
+    if ((ptr2 = fopen("helperdata.bin", "wb")) == NULL)
     {
-        printf("Unable to open file 2!\n");
-        return 1;
+        printf("Unable to open helper data file!\n");
+        return -1;
     }
 
     fwrite(encodeLR,sizeof(unsigned char),(LRfactor*len), ptr2);
@@ -712,7 +696,7 @@ int main(void)
     item.offset_begin = 1024;//for the time being harcoded to match the length
     item.offset_end = 16;   // in the initial code
     item.input_length = 0;
-    strcpy(item.input_Key_name, "pk");
+    strcpy(item.input_Key_name, "pubk");
     strcpy(item.input_PUF_name, "PUF");
     item.HD_error_pos = 0;
     item.HW_ENTP_mode = 0;
