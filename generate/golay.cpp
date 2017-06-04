@@ -711,28 +711,16 @@ int main(void)
     item.offset_begin = 1024;//for the time being harcoded to match the length
     item.offset_end = 16;   // in the initial code
     item.input_length = 0;
-    strcpy(item.input_Key_name, "pubk");
+    strcpy(item.input_Key_name, "pk");
     strcpy(item.input_PUF_name, "PUF");
-    strcpy(item.input_file_name, "ts2");
     item.HD_error_pos = 0;
     item.HW_ENTP_mode = 0;
     item.LR = 7;
 
-    //cout << endl << " Processing : Set Linear Repetition factor" << endl << endl;
-    //DefineSettings(&item, 2);
-    //cout << endl << " Processing : Set 'offset' for the PUF file" << endl << endl;
-    //DefineSettings(&item, 1);
-    //cout << endl << " Processing : Set Key file" << endl << endl;
-    //DefineFilename_BCH(&item, 1);
-    //cout << endl << " Processing : Set PUF file" << endl << endl;
-    //DefineFilename_BCH(&item, 2);
-    //cout << endl << " Processing : Set HelperData output filename" << endl << endl;
-    //DefineFilename_BCH(&item, 3);
-    
     error = SetInputLen(&item, 0);
     //read from PUF and store in sramData
     if ((fd = fopen(item.input_PUF_name,"rb")) == NULL) {
-        printf("unable to open file!\n");
+        printf("unable to open PUF file!\n");
         return -1;
     }
     fseek(fd, item.offset_begin, SEEK_SET);
@@ -740,7 +728,7 @@ int main(void)
     sramData = (unsigned char *) malloc(sizeof(char) * item.input_length);
 
     if (fread(&sramData[0], sizeof(char), item.input_length, fd) != item.input_length) {
-        printf("unable to read file1\n");
+        printf("unable to read PUF file\n");
         goto error2;
     }
 
@@ -748,14 +736,14 @@ int main(void)
     error = SetInputLen(&item, 1);
     //read from key file and store in keydata
     if ((fd1 = fopen(item.input_Key_name, "rb")) == NULL) {
-        printf("unable to open file2!\n");
+        printf("unable to open Key file!\n");
         goto error2;
     }
     fseek(fd1, item.offset_begin, SEEK_SET);
     keydata = (unsigned char *) malloc(sizeof(char) * item.input_length);
 
     if (fread(&keydata[0], sizeof(char), item.input_length, fd1) != item.input_length) {
-        printf("unable to read file\n");
+        printf("unable to read Key file\n");
         goto error1;
     }
 
@@ -766,24 +754,6 @@ int main(void)
 
     // functioncall to generate the codewords array and perform LR and save HelperData on FLASH for the privateKey (ts)
     generateHelperData(keydata, item.input_length, sramData, item.LR, "pr");
-    //generateHelperData(ts, sizeof(ts), sramData, 15, "pr");
-
-    item.offset_begin = item.offset_end = 0;
-    error = SetInputLen(&item, 2);
-    if ((fd1 = fopen(item.input_file_name, "rb")) == NULL) {
-        printf("unable to open file3!\n");
-        goto error1;
-    }
-    fseek(fd1, item.offset_begin, SEEK_SET);
-    keydata = (unsigned char *) malloc(sizeof(char) * item.input_length);
-
-    if (fread(&keydata[0], sizeof(char), item.input_length, fd1) != item.input_length) {
-        printf("unable to read file\n");
-        goto error1;
-    }
-    // functioncall to generate the codewords array and perform LR and save HelperData on FLASH for the publicKey (ts2)
-    //generateHelperData(keydata, item.input_length, sramData, item.LR, "pu");
-    //generateHelperData(ts2, sizeof(ts2), sramData, 15, "pu");
 
 error1:
     fclose(fd1);
