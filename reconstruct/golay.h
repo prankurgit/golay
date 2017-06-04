@@ -32,6 +32,19 @@ __error__(char *pcFilename, unsigned long ulLine)
 {
 }
 #endif
+//###############################################################
+// Array and Start Pointer for the saved SRAM DATA and HelperData
+unsigned char *sram; //32720
+//unsigned char *helperdata;
+//
+//*****************************************************************************
+// Length of the Secret (public- / private- Input) Key
+int len;
+//
+//*****************************************************************************
+//	Set CPU clock for sync FLASH operations
+//
+unsigned long ulOperatingFrequency = 20;// in MHz
 //
 //*****************************************************************************
 //
