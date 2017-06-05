@@ -463,7 +463,11 @@ int generateHelperData(volatile unsigned char *inputSecret, int inputSize, volat
     int j = 0;
 
     long data, codeword, temp;
-    int len = (((int)(((float)(inputSize*2)/3.0f)+0.999f))*3);
+    int len;
+    if (((inputSize * 2) % 3) != 0)
+        len = (((inputSize * 2) / 3) + 1) * 3;
+    else
+        len = (inputSize * 2);
     unsigned char *codeWordArrayBeforLR = (unsigned char*)malloc(sizeof(unsigned char) * len); 
     unsigned char *encodeLR = (unsigned char*)malloc(sizeof(unsigned char) * (LRfactor*len)); 
     //*****************************************************************************
