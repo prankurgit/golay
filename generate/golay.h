@@ -58,6 +58,18 @@ struct Item {
     int LR;
 } ;
 
+//add this info to the helper file for golay decoder
+typedef struct{
+    int errorCode;
+    int Golay_BCH_length;
+    int Golay_d_BCH_t;
+    int Golay_k_BCH_m;
+    int linearRep;
+    long puf_offSet_begin;
+    long puf_offSet_end;
+    long original_filesize;
+} Pattern;
+
 void nextcomb(int n, int r, int *a);
 
 #endif
