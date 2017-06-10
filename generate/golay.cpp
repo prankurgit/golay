@@ -125,7 +125,7 @@ unsigned int SetInputLen(struct Item *item, int option)
             break;
         default:
             printf("incorrect option!\n");
-            break;
+            return -1;
     }
 
     // Get the filesize
@@ -431,6 +431,7 @@ long get_syndrome(long pattern)
 /*
  * Compute the syndrome corresponding to the given pattern, i.e., the
  * remainder after dividing the pattern (when considering it as the vector
+ *
  * representation of a polynomial) by the generator polynomial, GENPOL.
  * In the program this pattern has several meanings: (1) pattern = infomation
  * bits, when constructing the encoding table; (2) pattern = error pattern,
@@ -451,7 +452,7 @@ long get_syndrome(long pattern)
 //****************************** END GOLAY Functions ***********************************************
 //
 // ########################## START ENCODED CODEWORD ARRAY ##################
-int generateHelperData(volatile unsigned char *inputSecret, int inputSize, volatile unsigned char *sram, int LRfactor, char *typ )
+int generateHelperData(volatile unsigned char *inputSecret, int inputSize, volatile unsigned char *sram, int LRfactor, const char *typ )
 {
     //
     // Variables of this function	
@@ -716,6 +717,7 @@ int main(void)
     item.HD_error_pos = 0;
     item.HW_ENTP_mode = 0;
     item.LR = 7;
+    const char * ktype = "pr";
 
     error = SetInputLen(&item, 0);
     //read from PUF and store in sramData
@@ -753,7 +755,7 @@ int main(void)
      */
 
     // functioncall to generate the codewords array and perform LR and save HelperData on FLASH for the privateKey (ts)
-    generateHelperData(keydata, item.input_length, sramData, item.LR, "pr");
+    generateHelperData(keydata, item.input_length, sramData, item.LR, ktype);
 
 error1:
     fclose(fd1);
