@@ -1,6 +1,39 @@
 #include "golay.h"
 
-int originalSize = 812;
+int read_infos(struct Item *item)
+{
+    FILE *fd;
+    Pattern *infos = (Pattern *)malloc(sizeof(Pattern));
+    long HD_filesize;
+    if ((fd = fopen(item->input_HD_name, "rb")) == NULL)
+    {
+        printf("Unable to open file to read infos!\n");
+        return 1;
+    }
+    //get the filesize
+    fseek(fd, 0, SEEK_END);
+    HD_filesize = ftell(fd);
+    rewind(fd);
+
+    //read the infos part in the helperdata
+    fseek(fd, (HD_filesize - sizeof(Pattern)), SEEK_SET);
+    if((signed)fread(infos, sizeof(Pattern), 1, fd) != 1) {
+        fclose(fd);
+        return 12;
+    }
+    fclose(fd);
+
+    //initialized the struct Item with the read infos
+    item->LR = infos->linearRep;
+    item->offset_begin = infos->puf_offSet_begin;
+    item->offset_end = infos->puf_offSet_end;
+    item->input_Key_length = infos->original_filesize;
+    printf("item input key length:%ld\n", item->input_Key_length);
+
+    free(infos);
+    return 0;
+}
+
 void DefineOffSetLength(struct Item *it1)
 /*
  * Function to get the 'offset_begin' and 'length' as user input
@@ -32,7 +65,7 @@ void DefineOffSetLength(struct Item *it1)
 		if(error) ErrorMessages(error, i);
 		error = 0;
 
-		cout << endl << "Type in the offset from beginning of file in bytes (as decimal number): ";
+		cout << endl << "T) ype in the offset from beginning of file in bytes (as decimal number): ";
 		if (fgets(oSet, sizeof(oSet), stdin)) {
 			/* fgets succeeds, scan for newline character */
 			p = strchr(oSet, '\n');
@@ -238,12 +271,12 @@ int majorityVoting(unsigned long pos, int fact)
         return 1;}
 }
 
-int Savefile(unsigned char *rdata)
+int Savefile(unsigned char *rdata, struct Item *item)
 {
     FILE *fd;
     if ((fd = fopen("pkr", "wb")) == NULL)
         printf("unable to open pkr file!\n");
-    fwrite(rdata, 1, originalSize, fd);
+    fwrite(rdata, 1, item->input_Key_length, fd);
     fclose(fd);
 
     return 0;
@@ -251,7 +284,7 @@ int Savefile(unsigned char *rdata)
 // ########################## END MAJORITYVOTE ##############################
 //
 //############################## START DECODING ##########################
-int recoverOriginalData(volatile unsigned char *sramData, int LRfactor, int originalSecretSize, int len, char *typ)
+int recoverOriginalData(volatile unsigned char *sramData, int LRfactor, int originalSecretSize, int len, struct Item *item)
 {
     // Variables of this function
     int i = 0;
@@ -272,11 +305,9 @@ int recoverOriginalData(volatile unsigned char *sramData, int LRfactor, int orig
         printf("Unable to open helper file!\n");
         return 1;
     }
-    fread(helperData,sizeof(unsigned char),(len*LRfactor),ptr2);
 
-
+    fread(helperData, sizeof(unsigned char), (len*LRfactor), ptr2);
     fclose(ptr2);
-
 
     /*
      * ---------------------------------------------------------------------
@@ -430,9 +461,7 @@ int recoverOriginalData(volatile unsigned char *sramData, int LRfactor, int orig
         k = k + 6;
     }
     int ret = 1;
-    if (typ == "pr")
-        ret = Savefile(recoverdSecret);
-    if (ret != 0)
+    if ((ret = Savefile(recoverdSecret, item)) != 0)
         printf("save incomplete!!");
 
     free(helperData);
@@ -445,39 +474,44 @@ int recoverOriginalData(volatile unsigned char *sramData, int LRfactor, int orig
 int main(void)
 {
     // Copy SRAM DATA from file to memory
-    FILE *fd, *fd1;
+    struct Item *item = (struct Item *)malloc(sizeof(struct Item));
+    if(!item) {
+        printf("unable to malloc struct Item\n");
+        return -1;
+    }
+    FILE *fd;
     unsigned int error = 0;
-    struct Item item;
-    item.offset_begin = 1024;
-    item.offset_end = 16;
-    item.input_length = 0;
-    strcpy(item.output_Key_name, "pkr");
-    strcpy(item.input_PUF_name, "PUF");
-    strcpy(item.input_HD_name, "/home/prankur/golay/generate/helperdata7pr.bin");
-    item.HW_ENTP_mode = 0;
-    item.LR = 7;
+    strcpy(item->output_Key_name, "pkr");
+    strcpy(item->input_PUF_name, "PUF");
+    strcpy(item->input_HD_name, "/home/prankur/golay/generate/helperdata.bin");
+    error = read_infos(item);
 
-    error = SetInputLen(&item, 0);
+    error = SetInputLen(item, 0);
     //read from PUF and store in sramData
-    if ((fd = fopen(item.input_PUF_name, "rb")) == NULL) {
+    if ((fd = fopen(item->input_PUF_name, "rb")) == NULL) {
         printf("unable to open PUF file!\n");
         return -1;
     }
-    fseek(fd, item.offset_begin, SEEK_SET);
-    sram = (unsigned char *) malloc(sizeof(char) * item.input_length);
-    if (fread(&sram[0], sizeof(char), item.input_length, fd) != item.input_length) {
+    fseek(fd, item->offset_begin, SEEK_SET);
+    sram = (unsigned char *) malloc(sizeof(char) * item->input_length);
+    if (fread(&sram[0], sizeof(char), item->input_length, fd) != item->input_length) {
         printf("unable to read PUF file!\n");
         goto error1;
     }
 
-    len = ((int)(((float)(originalSize*2)/3.0f)+0.999f)*3);
+    //len = ((int)(((float)(originalSize*2)/3.0f)+0.999f)*3);
+    if ( ((item->input_Key_length * 2) % 3) != 0)
+        len = (((item->input_Key_length * 2) / 3) + 1) * 3;
+    else
+        len = (item->input_Key_length * 2);
 
     printf("golay len %d\n", len);
-    printf("helperdata len %d\n", len*item.LR);
-    recoverOriginalData(sram, item.LR, originalSize, len,"pr");
+    printf("helperdata len %d\n", len*item->LR);
+    recoverOriginalData(sram, item->LR, item->input_Key_length, len, item);
 error1:
     free(sram);
     fclose(fd);
+    free(item);
 
     return 0;
 }

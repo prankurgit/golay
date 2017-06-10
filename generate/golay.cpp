@@ -2,6 +2,8 @@
 //
 #include "golay.h"
 
+struct Item item;
+
 void DefineOffSetLength(struct Item *it1)
 /*
  * Function to get the 'offset_begin' and 'length' as user input
@@ -452,7 +454,7 @@ long get_syndrome(long pattern)
 //****************************** END GOLAY Functions ***********************************************
 //
 // ########################## START ENCODED CODEWORD ARRAY ##################
-int generateHelperData(volatile unsigned char *inputSecret, int inputSize, volatile unsigned char *sram, int LRfactor, const char *typ )
+int generateHelperData(volatile unsigned char *inputSecret, int inputSize, volatile unsigned char *sram, int LRfactor)
 {
     //
     // Variables of this function	
@@ -462,6 +464,7 @@ int generateHelperData(volatile unsigned char *inputSecret, int inputSize, volat
     int i = 0;
     int j = 0;
 
+    Pattern *infos = (Pattern *)malloc(sizeof(Pattern));
     long data, codeword, temp;
     int len;
     if (((inputSize * 2) % 3) != 0)
@@ -677,6 +680,18 @@ int generateHelperData(volatile unsigned char *inputSecret, int inputSize, volat
 
     fwrite(encodeLR,sizeof(unsigned char),(LRfactor*len), ptr2);
 
+    //initialize the info to be written in the helper file for decoder
+    infos->errorCode = 0;
+    infos->Golay_k_BCH_m = 0;
+    infos->Golay_BCH_length = 0;
+    infos->Golay_d_BCH_t = 0;
+    infos->linearRep = item.LR;
+    infos->puf_offSet_begin = item.offset_begin;
+    infos->puf_offSet_end = item.offset_end;
+    infos->original_filesize = inputSize;
+
+    fwrite(infos, sizeof(Pattern), 1, ptr2);
+
     fclose(ptr2);
 
     free(codeWordArrayBeforLR);
@@ -696,7 +711,8 @@ int main(void)
     FILE *fd;
     FILE *fd1;
     unsigned int error = 0;
-    struct Item item;
+
+    //init the struct
     item.offset_begin = 1024;//for the time being harcoded to match the length
     item.offset_end = 16;   // in the initial code
     item.input_length = 0;
@@ -705,7 +721,6 @@ int main(void)
     item.HD_error_pos = 0;
     item.HW_ENTP_mode = 0;
     item.LR = 7;
-    const char * ktype = "pr";
 
     error = SetInputLen(&item, 0);
     //read from PUF and store in sramData
@@ -743,7 +758,7 @@ int main(void)
      */
 
     // functioncall to generate the codewords array and perform LR and save HelperData on FLASH for the privateKey (ts)
-    generateHelperData(keydata, item.input_length, sramData, item.LR, ktype);
+    generateHelperData(keydata, item.input_length, sramData, item.LR);
 
 error1:
     fclose(fd1);
