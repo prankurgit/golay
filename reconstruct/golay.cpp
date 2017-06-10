@@ -1,5 +1,6 @@
 #include "golay.h"
 
+int originalSize = 812;
 void DefineOffSetLength(struct Item *it1)
 /*
  * Function to get the 'offset_begin' and 'length' as user input
@@ -123,7 +124,7 @@ unsigned int SetInputLen(struct Item *item, int option)
             break;
         default:
             printf("incorrect option!\n");
-            break;
+            return -1;
     }
 
     // Get the filesize
@@ -242,7 +243,7 @@ int Savefile(unsigned char *rdata)
     FILE *fd;
     if ((fd = fopen("pkr", "wb")) == NULL)
         printf("unable to open pkr file!\n");
-    fwrite(rdata, 1, 812, fd);    
+    fwrite(rdata, 1, originalSize, fd);
     fclose(fd);
 
     return 0;
@@ -265,46 +266,10 @@ int recoverOriginalData(volatile unsigned char *sramData, int LRfactor, int orig
 
 
     //get helper data from file
-    char strin[100];
-
     FILE *ptr2;
-    if (LRfactor == 7){
-        if (typ == "pu"){
-            //printf("Give the file path to file \"helperdata7pu\": ");
-            //scanf("%s", strin);
-            //if (strin[0] == 'C')
-            //    strcat(strin,":\\Users\\Nikolas\\Desktop\\NetBeansProjects\\generate\\helperdata7pu.bin");
-            //else strcat(strin,"\\helperdata7pu.bin");
-            ptr2 = fopen( "/home/prankur/golay/generate/helperdata7pu.bin", "rb" );
-        } else {
-            //printf("Give the file path to file \"helperdata7pr\": ");
-            //scanf("%s", strin);
-            //if (strin[0] == 'C')
-            //    strcat(strin,":\\Users\\Nikolas\\Desktop\\NetBeansProjects\\generate\\helperdata7pr.bin");
-            //else strcat(strin,"\\helperdata7pr.bin");
-            ptr2 = fopen( "/home/prankur/golay/generate/helperdata7pr.bin", "rb" );
-        }
-    }
-    if (LRfactor == 15){
-        if (typ == "pu"){
-            //printf("Give the file path to file \"helperdata15pu\": ");
-            //scanf("%s", strin);
-            //if (strin[0] == 'C')
-            //    strcat(strin,":\\Users\\Nikolas\\Desktop\\NetBeansProjects\\generate\\helperdata15pu.bin");
-            //else strcat(strin,"\\helperdata15pu.bin");
-            ptr2 = fopen( "/home/prankur/golay/generate/helperdata15pu.bin", "rb" );
-        } else {
-            //printf("Give the file path to file \"helperdata15pr\": ");
-            //scanf("%s", strin);
-            //if (strin[0] == 'C')
-            //    strcat(strin,":\\Users\\Nikolas\\Desktop\\NetBeansProjects\\generate\\helperdata15pr.bin");
-            //else strcat(strin,"\\helperdata15pr.bin");
-            ptr2 = fopen( "/home/prankur/golay/generate/helperdata15pr.bin", "rb" );
-        }
-    }
-    if (!ptr2)
+    if ((ptr2 = fopen("/home/prankur/golay/generate/helperdata.bin", "rb")) == NULL)
     {
-        printf("Unable to open file 2!\n");
+        printf("Unable to open helper file!\n");
         return 1;
     }
     fread(helperData,sizeof(unsigned char),(len*LRfactor),ptr2);
@@ -471,59 +436,12 @@ int recoverOriginalData(volatile unsigned char *sramData, int LRfactor, int orig
         printf("save incomplete!!");
 
     free(helperData);
-    //check if secrets match
-    int count = 0;
-    if (typ == "pu"){
-        for (i=0; i<sizeof(ts2);i++){
-            if (*(recoverdSecret+i) == (ts2[i])){
-                count = count + 1;
-            }
-        }
-        if (count == sizeof(ts2)){
-            printf("\nYes, they match.\n\n");
-        } else{
-            printf("\nNo, they don't match!!!!\n\n");
-        }
-    }
-    if (typ == "pr"){
-        for (i=0; i<sizeof(ts);i++){
-            if (*(recoverdSecret+i) == (ts[i])){
-                count = count + 1;
-            }
-        }
-        if (count == sizeof(ts)){
-            printf("\nYes, they match.\n\n");
-
-        } else{
-            printf("\nNo, they don't match!!!!\n\n");
-
-        }    
-    }
-
-
     free(recoverdSecret);
     free(recoverdFromLR);
 
     return 0;
 }
 
-//###############################################################
-// Array and Start Pointer for the saved SRAM DATA and HelperData
-unsigned char *sram; //32720		
-unsigned char *keydata;
-//
-//*****************************************************************************
-// Length of the Secret (public- / private- Input) Key 
-//
-int len;
-int originalSize;		
-//
-//*****************************************************************************
-//	Set CPU clock for sync FLASH operations
-//													
-unsigned long ulOperatingFrequency = 20;// in MHz
-//
-//*****************************************************************************
 int main(void)
 {
     // Copy SRAM DATA from file to memory
@@ -538,29 +456,6 @@ int main(void)
     strcpy(item.input_HD_name, "/home/prankur/golay/generate/helperdata7pr.bin");
     item.HW_ENTP_mode = 0;
     item.LR = 7;
-    char stri[100];
-    char al[100];
-
-    //printf("Give the filename: ");
-    //scanf("%s", stri);
-
-    //if (stri[0] == 'S'){
-    //    al[0]='C';
-    //    strcat(al,":\\Users\\Nikolas\\Dropbox\\Stellaris16\\");
-    //    strcat(al,stri);}
-
-    //if (al[0] == 'C')
-    //    ptr = fopen(al,"rb");
-    //else 
-    //    ptr = fopen(stri,"rb");
-
-    //if (!ptr)
-    //{
-    //    printf("Unable to open file!\n");
-    //    return 1;
-    //}
-
-    //fseek(ptr, 1024 , SEEK_SET ); //48
 
     error = SetInputLen(&item, 0);
     //read from PUF and store in sramData
@@ -572,43 +467,15 @@ int main(void)
     sram = (unsigned char *) malloc(sizeof(char) * item.input_length);
     if (fread(&sram[0], sizeof(char), item.input_length, fd) != item.input_length) {
         printf("unable to read PUF file!\n");
-        goto error2;
-    }
-
-    item.offset_begin = item.offset_end = 0;
-    error = SetInputLen(&item, 2);
-    //read from helper file and store in keydata
-    if (( fd1 = fopen(item.input_HD_name, "rb")) == NULL) {
-        printf("unable to open helper file\n");
-        goto error2;
-    }
-    fseek(fd1, item.offset_begin, SEEK_SET);
-    keydata = (unsigned char *) malloc(sizeof(char) * item.input_length);
-    if (fread(&keydata[0], 1, item.input_length, fd1) != item.input_length) {
-        printf("unable to read helper file\n");
         goto error1;
     }
 
-    //*****************************************************************************
-
-    // Reconstruct privateKey (length 428 byte)
-    // set Input Size and calculate golay length
-    originalSize = 812;
     len = ((int)(((float)(originalSize*2)/3.0f)+0.999f)*3);
-    recoverOriginalData(sram, 7, originalSize, len,"pr");
-    //recoverOriginalData(sram, 15, originalSize, len,"pr");
 
-    // Reconstruct publicKey (length 128 byte)
-    // set Input Size and calculate golay length
-    originalSize = 128;
-    len = ((int)(((float)(originalSize*2)/3.0f)+0.999f)*3);
-    //recoverOriginalData(sram, 7, originalSize, len,"pu");
-    //recoverOriginalData(sram, 15, originalSize, len,"pu");
-
+    printf("golay len %d\n", len);
+    printf("helperdata len %d\n", len*item.LR);
+    recoverOriginalData(sram, item.LR, originalSize, len,"pr");
 error1:
-    fclose(fd1);
-    free(keydata);
-error2:
     free(sram);
     fclose(fd);
 
