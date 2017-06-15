@@ -751,6 +751,8 @@ int main(void)
         printf("unable to read Key file\n");
         goto error1;
     }
+    item.offset_begin = 1024;//for the time being harcoded to match the length
+    item.offset_end = 16;   // in the initial code
 
     /* ---------------------------------------------------------------------
      *                        Generate Codeword DATA (with LR)

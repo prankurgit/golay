@@ -28,7 +28,8 @@ int read_infos(struct Item *item)
     item->offset_begin = infos->puf_offSet_begin;
     item->offset_end = infos->puf_offSet_end;
     item->input_Key_length = infos->original_filesize;
-    printf("item input key length:%ld\n", item->input_Key_length);
+    printf("input key length:%ld\n", item->input_Key_length);
+    printf("offsets:%ld %ld\n", item->offset_begin, item->offset_end);
 
     free(infos);
     return 0;
